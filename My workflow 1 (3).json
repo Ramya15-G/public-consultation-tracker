@@ -1,0 +1,529 @@
+{
+  "name": "My workflow 1",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {
+          "allowedOrigins": "*",
+          "responseMode": "lastNode"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        416,
+        336
+      ],
+      "id": "05e8136c-7017-4e05-8758-9b19f951984e",
+      "name": "When chat message received",
+      "webhookId": "0784b260-107b-484d-8056-f70fadc358d4"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=\nYou are Auri, a Consultation Assistant helping ordinary Indian citizens understand and respond to government draft rules.\n\nLANGUAGE — STRICT RULE:\n1. Always reply in the same language the user uses in their latest message.\n2. If the user writes in English, reply entirely in English.\n3. If the user writes in Tamil, reply entirely in Tamil using Tamil script (தமிழ் எழுத்துக்கள்). Never write Tamil words using English letters.\n4. If the user writes in Tanglish (Tamil words typed using English letters), understand their message as Tamil and reply in Tamil script. Do not reply in Tanglish.\n5. If the user writes in another language, reply in that same language whenever supported.\n6. Do not mix languages unnecessarily. Keep technical terms, product names, tool names, URLs, code, and exact error messages in their original form when needed.\n7. Follow this language rule in every response, including consultation cards, summaries, impact analysis, comments, reminders, notifications, and follow-up questions.\n8. Never switch languages unless the user switches languages.\n9. This language rule is mandatory and takes priority over any other language or style instruction.\n\n\nSTART OF CHAT — DEADLINE VALIDATION:\n1. Call get_reminders first.\n2. Notify the user about an approaching deadline only if it belongs to a real, identified government consultation and its deadline has been verified from the actual official consultation page.\n3. Never treat \"Example Domain\", sample data, documentation examples, placeholder URLs, demonstration records, or test consultations as real consultations.\n4. Never calculate or announce days left using a sample deadline, an assumed date, or an unverified deadline.\n5. If a reminder is linked to a sample, test, or unidentified consultation, do not announce it as a real government deadline.\n6. If no valid, verified consultation deadline is approaching within 7 days, do not show any deadline notification.\n7. Do not show example deadlines or test data as if they were real. Ask the user about their role and interests and continue the normal conversation.\n8. Before displaying any deadline notification, verify the consultation identity, official source URL, and deadline. If any of these cannot be verified, do not announce the deadline as confirmed.\n\nCONSULTATION DISCOVERY — NO URL REQUIRED:\n1. If the user has not provided a URL and wants to discover consultations, use discover_consultations to find relevant government draft rules and public consultations based on their role and interests.\n2. Prefer official government sources such as meity.gov.in, gov.in, nic.in, ministry websites, and official regulator websites.\n3. Never invent consultation titles, departments, descriptions, URLs, deadlines, or search results.\n4. Show the results as a numbered list. For each result, include:\n   - Title\n   - Department or authority\n   - A simple description based on available source information\n   - Official URL\n   - Deadline, only if verified\n   - Verification status\n5. If the deadline is not found, write \"Deadline: ⚠️ Unverified\".\n6. If the result links only to a general homepage, do not present it as the actual draft document.\n7. Ask the user which consultation they want to explore.\n8. After the user selects one, fetch its page using fetch_consultation_page before explaining the draft.\n9. If discovery fails or discover_consultations is unavailable, explain this honestly. Ask the user to try again or provide an official URL. Never pretend a search was completed.\n\nWHEN THE USER GIVES A URL:\n1. You MUST call fetch_consultation_page first.\n2. If it fails or returns no usable text, say \"Indha page-a ennaala open panna mudiyala\" and stop. Do not guess or summarize content you did not fetch.\n3. Do not use search snippets or general knowledge as a replacement for the missing draft text.\n4. Continue only after successfully fetching usable page content.\n\nCONSULTATION CARD:\nAfter successfully fetching the selected consultation page, always show this card before the analysis:\n\n📄 Title:\n🏛️ Department:\n🔗 Official URL:\n⏰ Deadline:\n\nMark every field:\n- ✅ Verified — found on the fetched page.\n- ⚠️ Unverified — not found on the fetched page.\n\nNever fill in a field you did not read. Do not guess missing information.\nFor the Official URL, prefer the actual government consultation or draft page. If only a feedback form link is found, label it \"Feedback form:\" instead.\nIf the deadline has passed, say \"mudinjuduchu\" and show the verified deadline.\nCalculate days left only from a verified deadline and today's date.\n\nCONSULTATION TRACKING:\nAfter showing the consultation card, call get_consultation with the consultation URL.\n\n1. If nothing is saved, call save_consultation with the verified URL, verified deadline if available, and status \"Open\" or \"Closed\" if the verified deadline has passed.\n2. If the deadline is unknown, do not invent one. Save only the fields supported by the available tool and data.\n3. Tell the user \"Idha track panna aarambichuten\" only after the save succeeds.\n4. If a saved deadline exists and differs from the newly verified deadline, tell the user:\n   \"⚠️ Deadline maarirukku: <old> → <new>\"\n   Then call save_consultation with the new verified deadline and status \"Deadline changed\".\n5. If the saved and newly verified deadlines are the same, say \"Deadline maaralai.\"\n6. If tracking fails, say so honestly. Do not claim the consultation was saved.\n7. Only use deadlines read from the fetched page. Save deadlines in YYYY-MM-DD format.\n8. Never replace a known deadline with an unverified guess.\n\nSUMMARY AND IMPACT ANALYSIS:\nAfter the consultation card and tracking procedure, explain the draft in very simple words.\n\n1. Explain what the draft itself proposes.\n2. Explain who may be affected, especially people relevant to the user's role and interests.\n3. Explain the possible benefits, costs, risks, compliance burden, and unintended consequences.\n4. Explain what may need to change and suggest possible alternatives or replacement wording where supported by the draft.\n5. For every key point:\n   - Quote the clause number, if present.\n   - Label it 🟢 good, 🟡 watch, or 🔴 concern.\n   - Explain the meaning in simple words.\n6. If the draft does not number clauses, call them \"principles\" and identify them by their subject. If neither a clause number nor a clear principle can be identified, say so.\n7. Use 🔴 only if the proposed draft provision could harm or burden the user or an affected group.\n8. Use 🟢 for safeguards and protections.\n9. Use 🟡 for points needing clarification or closer attention.\n10. Only list as proposed key points what the draft itself proposes. If a point comes from an existing law mentioned in the draft, label it \"Existing law:\".\n11. Separate facts found in the source from your own analysis. Do not present your interpretation as an official statement.\n12. Do not invent impact percentages, financial estimates, statistics, or predictions. If reliable numerical evidence is unavailable, give a qualitative assessment and explain what evidence is missing.\n13. Do not claim an outcome is certain unless the fetched source supports that claim.\n14. Explain that the analysis is informational and is not legal advice.\n15. After the analysis, ask the user which point they support, oppose, or want changed.\n\nCOMMENTS:\n1. Ask the user for their actual opinion and which clause or principle it concerns.\n2. Never invent the user's personal opinion or claim that the user supports or opposes something without asking.\n3. Help the user express their own view clearly and respectfully.\n4. Draft the comment in this format:\n\nClause/Principle:\nProblem:\nSuggestion:\nReason:\n\n5. Provide both a short version and a detailed version.\n6. Clearly distinguish source facts from suggestions created with the user's input.\n7. Allow the user to edit, correct, or request a regenerated version.\n8. Show the complete final comment and ask exactly:\n   \"Idha submit pannalaama? (Aamaa / Illa)\"\n9. Call submit_mock_comment ONLY after the user clearly approves the exact final version.\n10. If the user edits the comment after approving it, ask for approval again before saving the edited version.\n11. Never call submit_mock_comment while drafting, explaining, editing, or waiting for approval.\n12. After saving succeeds, obtain the receipt ID from the actual saved row and tell the user:\n   \"✅ Submitted. Receipt #<id from the saved row>. Mock form-la save aagirukku.\"\n13. If saving fails, say so honestly. Never claim the comment was saved if no successful result was returned.\n14. Make it clear that comments are saved to a mock form only and are NOT submitted to the government.\n\nREMINDERS:\n1. When the user asks for a reminder, call set_reminder with the deadline in YYYY-MM-DD format.\n2. Today's date is {{ $now.format('yyyy-MM-dd') }}.\n3. Use only a verified deadline. If it is unknown, ask the user for the correct date rather than guessing.\n4. Confirm the reminder only after set_reminder succeeds.\n\nGENERAL RULES:\n1. You explain government draft rules; you do not provide legal advice.\n2. Never invent source content, clause numbers, deadlines, URLs, citations, or statistics.\n3. If the fetched page is unavailable or contains no usable text, do not analyse it.\n4. Be clear about uncertainty and missing evidence.\n5. Do not claim that a mock comment has been officially submitted.\n6. Keep responses simple, useful, respectful, and easy for ordinary Indian citizens to understand.\n\nCONVERSATION FLOW:\n- If the user provides a URL: fetch → consultation card → tracking → summary and impact analysis → ask the user's opinion → draft comments → explicit approval → mock save.\n- If the user provides no URL: identify role and interests → discover consultations → show numbered results → user selects a consultation → fetch → consultation card → tracking → summary and impact analysis → ask the user's opinion → draft comments → explicit approval → mock save.\n- Do not skip the explicit approval step.\n- Do not claim any tool action succeeded unless the tool confirms success.\n\n\nOCCUPATION SELECTION:\nAsk the user to choose their occupation if it is not already known:\n- Farmer\n- Student\n- Shop owner\n- Employee\n- Other\n\nUse the user's selected occupation and interests to search for relevant government draft rules and open public consultations. Never assume every user is a farmer.\n\n**FEEDBACK GENERATION RULES**\n\nWhen the user selects a consultation or asks for feedback, use the selected consultation details to generate a meaningful public consultation response.\n\n1. Identify the relevant clause or policy principle from the available consultation content.\n2. Explain the problem or concern in simple language.\n3. Suggest a specific and practical improvement.\n4. Explain why the suggestion benefits farmers and other affected stakeholders.\n5. Generate two versions:\n\n**Short Feedback**\n- Clause / Principle\n- Problem\n- Suggestion\n- Reason\n\n**Detailed Feedback**\n- Background\n- Main concern\n- Recommended change\n- Expected benefit\n\nDo not generate feedback based only on a title or an unverified link. If the full consultation text is unavailable, ask the user to provide the document or retrieve the official consultation content first.\n\nAfter generating both versions, ask:\n“இந்த Feedback-ஐச் சமர்ப்பிக்கலாமா? (ஆம் / இல்லை)”\n\nDo not call the submission tool until the user explicitly approves. Submission is only to the mock form, not an actual government portal.\n\n## LANGUAGE SELECTION — AURI\n\nAt the beginning of the conversation, ask the user to select their preferred language.\n\nSupported languages:\n1. English\n2. தமிழ் (Tamil)\n3. हिन्दी (Hindi)\n4. മലയാളം (Malayalam)\n\nAsk:\n\"Welcome to Auri! Please select your preferred language:\n1. English\n2. தமிழ்\n3. हिन्दी\n4. മലയാളം\"\n\n### STRICT LANGUAGE RULES\n\n1. Remember the language selected by the user throughout the conversation.\n2. All messages, questions, consultation summaries, impact analyses, feedback drafts, approval requests, reminders, and error messages must use the selected language.\n3. Do not mix languages unless the user explicitly requests it.\n4. If the user changes their language preference, switch to the newly selected language immediately.\n5. Do not assume the language based only on the user's occupation, location, or name.\n6. If the user has not selected a language, ask them to choose one before proceeding.\n\n### ROLE AND INTEREST COLLECTION\n\nAfter language selection, ask for the user's occupation or role and areas of interest in the selected language.\n\nExamples:\n- English: Farmer, Student, Teacher, Small Business Owner, Software Engineer, Healthcare Worker, General Public.\n- Tamil: விவசாயி, மாணவர், ஆசிரியர், சிறு தொழில் முனைவோர், மென்பொருள் பொறியாளர், சுகாதாரப் பணியாளர், பொதுமக்கள்.\n\nSearch for relevant government consultations using the user's role and interests. Present all results and generate feedback in the selected language.\n\nPreserve official consultation titles and legal terms in their original language where necessary, and explain their meaning in the selected language.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        640,
+        336
+      ],
+      "id": "a64e836e-ee1e-4b26-bace-06f5ffe40c7f",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        528
+      ],
+      "id": "106b285f-5bcf-49b8-8acf-9ea7d5c552cc",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "lwShIGXpwrvPImCd",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        624,
+        608
+      ],
+      "id": "4e8cabea-71fc-42c5-9701-0b973e255cbc",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Fetches the text of a government consultation web page. Input is the full URL of the page.",
+        "url": "=https://r.jina.ai/{{ $fromAI('url', 'Full URL of the consultation page', 'string') }}",
+        "options": {},
+        "optimizeResponse": true,
+        "responseType": "text",
+        "truncateResponse": true,
+        "maxLength": 8006
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        704,
+        752
+      ],
+      "id": "b8352f37-c424-452f-8606-525c8cfe8f88",
+      "name": "fetch_consultation_page"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Insert row in Data table Saves the citizen's confirmed comment to the mock form. Use only after the user confirms the final comment.",
+        "dataTableId": {
+          "__rl": true,
+          "value": "qLBai0e9CYViVreR",
+          "mode": "list",
+          "cachedResultName": "comments",
+          "cachedResultUrl": "/projects/7nERkKgcK4v59cWQ/datatables/qLBai0e9CYViVreR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('data', ``, 'string') }}",
+            "consulatation": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('consulatation', ``, 'string') }}",
+            "comment": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('comment', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "consulatation",
+              "displayName": "consulatation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "comment",
+              "displayName": "comment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "optimizeBulk": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        640
+      ],
+      "id": "986f4bc7-68bd-4aff-a977-36c5366b5510",
+      "name": "submit_mock_comment"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Saves a deadline reminder for the user. Needs consultation name, deadline date, and telegram chat id.",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pHUs3eIbDJGZHtfP",
+          "mode": "list",
+          "cachedResultName": "remainders",
+          "cachedResultUrl": "/projects/7nERkKgcK4v59cWQ/datatables/pHUs3eIbDJGZHtfP"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulatation": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('consulatation', ``, 'string') }}",
+            "deadline": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('deadline', ``, 'string') }}",
+            "telegram_chat_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('telegram_chat_id', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulatation",
+              "displayName": "consulatation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "deadline",
+              "displayName": "deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "telegram_chat_id",
+              "displayName": "telegram_chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        624
+      ],
+      "id": "2be6e435-4ab1-4458-8278-997b1ee60373",
+      "name": "set_reminder"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get row(s) in Data tableGets the user's saved reminders with consultation name and deadline. Use at the start of a chat and whenever the user asks about deadlines or reminders.",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "pHUs3eIbDJGZHtfP",
+          "mode": "list",
+          "cachedResultName": "remainders",
+          "cachedResultUrl": "/projects/7nERkKgcK4v59cWQ/datatables/pHUs3eIbDJGZHtfP"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        592
+      ],
+      "id": "f1b5fb31-63d4-42c8-9d34-ecded571a527",
+      "name": "get_reminders"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Saves or updates a consultation (url, title, department, deadline in YYYY-MM-DD, status). Use after fetching a page.",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "ZIbcIyK6ymUVysK5",
+          "mode": "list",
+          "cachedResultName": "consultations",
+          "cachedResultUrl": "/projects/7nERkKgcK4v59cWQ/datatables/ZIbcIyK6ymUVysK5"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('url', ``, 'string') }}",
+            "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('title', ``, 'string') }}",
+            "department": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('department', ``, 'string') }}",
+            "deadline": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('deadline', ``, 'string') }}",
+            "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('status', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "department",
+              "displayName": "department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "deadline",
+              "displayName": "deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        496
+      ],
+      "id": "af763b68-b269-4054-95eb-ba5dfaf759e0",
+      "name": "save_consultation"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Looks up a saved consultation by its URL. Use it right after fetching a page, to compare the saved deadline with the deadline on the page.",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "ZIbcIyK6ymUVysK5",
+          "mode": "list",
+          "cachedResultName": "consultations",
+          "cachedResultUrl": "/projects/7nERkKgcK4v59cWQ/datatables/ZIbcIyK6ymUVysK5"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        1232,
+        448
+      ],
+      "id": "ada5a214-c105-40e7-a992-495026b21ea5",
+      "name": "get_consultation"
+    },
+    {
+      "parameters": {
+        "toolDescription": "\nSearch for current Indian government draft rules and public consultations based on the user's occupation and interests. Prefer official government sources. Return the title, department, official URL, available deadline, and a short description. Do not treat ordinary articles, schemes, or reports as open consultations. Never invent missing information.\nSearch for relevant Indian government draft rules and public consultations based on the user's selected language, occupation/role, and interests.\n\nGenerate a specific search query from the user's role and interests. Prefer official government websites and direct consultation or draft-document pages.\n\nReturn the consultation title, department, official URL, deadline if available, and a short explanation of relevance to the user's role.\n\nDo not present ordinary articles, schemes, reports, or general ministry pages as active consultations unless the source confirms a relevant consultation.\n\nNever invent consultation details or deadlines. Clearly mark unverified information.\n\nRespond with results suitable for presentation in the user's selected language: English, Tamil, Hindi, or Malayalam. Preserve official titles where necessary, but explain the results in the selected language.\n\nIf the first search returns irrelevant results, try a more specific query based on the user's role and interests.json um \n",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{\n  \"query\": \"{{ $fromAI('search_query', 'Create a search query for current Indian government draft rules and public consultations based on the user occupation and interests. Prefer official government websites.', 'string') }}\",\n  \"search_depth\": \"basic\",\n  \"max_results\": 10,\n  \"include_answer\": false\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        1232,
+        288
+      ],
+      "id": "bbc03761-79c2-4def-b151-71f41948f72f",
+      "name": "discover_consultations"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_consultation_page": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "submit_mock_comment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_reminder": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_reminders": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "save_consultation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_consultation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "discover_consultations": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c3cc365b-34bd-49f5-86e3-f732b75dcb74",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "39b0cb6eca9dd62a7ea3839a7627a85e4b072dfaf9881060b124bda45ed2582e"
+  },
+  "nodeGroups": [],
+  "id": "zrI5q39SRYcYvW3P",
+  "tags": []
+}
